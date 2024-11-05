@@ -30,11 +30,6 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		0D97172F2CD8DCC100778A1B /* MySecretRecipes */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = MySecretRecipes;
-			sourceTree = "<group>";
-		};
 		0D9717422CD8DCC300778A1B /* MySecretRecipesTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = MySecretRecipesTests;
@@ -43,6 +38,11 @@
 		0D97174C2CD8DCC300778A1B /* MySecretRecipesUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = MySecretRecipesUITests;
+			sourceTree = "<group>";
+		};
+		0D9717752CD8E40700778A1B /* MySecretRecipes */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = MySecretRecipes;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -75,7 +75,7 @@
 		0D9717242CD8DCC100778A1B = {
 			isa = PBXGroup;
 			children = (
-				0D97172F2CD8DCC100778A1B /* MySecretRecipes */,
+				0D9717752CD8E40700778A1B /* MySecretRecipes */,
 				0D9717422CD8DCC300778A1B /* MySecretRecipesTests */,
 				0D97174C2CD8DCC300778A1B /* MySecretRecipesUITests */,
 				0D97172E2CD8DCC100778A1B /* Products */,
@@ -108,7 +108,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				0D97172F2CD8DCC100778A1B /* MySecretRecipes */,
+				0D9717752CD8E40700778A1B /* MySecretRecipes */,
 			);
 			name = MySecretRecipes;
 			packageProductDependencies = (
