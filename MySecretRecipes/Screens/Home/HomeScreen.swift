@@ -16,6 +16,11 @@ struct HomeView: View {
     var body: some View {
         content
             .animation(.default, value: viewModel.state)
+            .onAppear {
+                Task {
+                    await viewModel.loadInitialData()
+                }
+            }
     }
 
     @ViewBuilder

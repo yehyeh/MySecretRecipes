@@ -62,9 +62,6 @@ class HomeViewModel: ObservableObject {
 
     init(homeService: HomeServiceProtocol = HomeService()) {
         self.homeService = homeService
-        Task {
-            await loadInitialData()
-        }
     }
 
     @MainActor
