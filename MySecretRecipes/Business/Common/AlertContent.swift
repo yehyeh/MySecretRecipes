@@ -5,7 +5,10 @@
 //  Created by Yehonatan Yehudai on 05/11/2024.
 //
 
-struct AlertContent {
+import SwiftUI
+
+struct AlertContent: Identifiable {
+    let id = UUID()
     let title: String
     let message: String
     let actions: [AlertAction]

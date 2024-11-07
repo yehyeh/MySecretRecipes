@@ -19,5 +19,4 @@ extension Color {
     /// App Defaults:
     static var tintApp: Color { .blue }
     static var placeholderApp: Color { .gray }
-    static var starApp: Color { .yellow }
 }

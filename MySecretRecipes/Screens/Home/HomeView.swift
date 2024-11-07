@@ -1,5 +1,5 @@
 //
-//  ContentView.swift
+//  HomeView.swift
 //  MySecretRecipes
 //
 //  Created by Yehonatan Yehudai on 04/11/2024.
@@ -14,13 +14,36 @@ struct HomeView: View {
     }
 
     var body: some View {
-        content
+        NavigationStack {
+            ZStack {
+                content
+
+                if viewModel.isProcessing {
+                    ZStack {
+                        Color.dynamicText.opacity(0.5)
+                        ProgressView()
+                    }
+                    .ignoresSafeArea()
+                }
+            }
+            .navigationTitle("My Secret Recipes".localizedCapitalized)
             .animation(.default, value: viewModel.state)
             .onAppear {
                 Task {
-                    await viewModel.loadInitialData()
+                    viewModel.loadInitialData()
                 }
             }
+            .sheet(item: $viewModel.selectedItem) { item in
+                DetailsView(recipe: item)
+            }
+            .alert(item: $viewModel.alertContent) { alert in
+                Alert(
+                    title: Text(alert.title),
+                    message: Text(alert.message),
+                    dismissButton: .default(Text("OK"))
+                )
+            }
+        }
     }
 
     @ViewBuilder
@@ -31,7 +54,7 @@ struct HomeView: View {
             case .loaded(let items):
                 listViewFor(items: items)
             case .error(let errorState):
-                alertView(content: errorState)
+                emptyStateView(title: errorState.title, subtitle: errorState.message)
         }
     }
 }
@@ -46,39 +69,12 @@ private extension HomeView {
         }
     }
 
-    func listViewFor(items: [Recipe]) -> some View {
-        List(items) { recipe in
-            NavigationLink {
-                Text(recipe.name)
-            } label: {
-                Text(recipe.name)
-            }
-        }
-    }
-
-    private func alertView(content: AlertContent) -> some View {
-        VStack(spacing: 16) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 50))
-                .foregroundStyle(.red)
-
-            Text(content.title)
-                .font(.headline)
-
-            Text(content.message)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-
-            HStack(spacing: 16) {
-                ForEach(content.actions, id: \.title) { action in
-                    Button(action.title) {
-                        handleAction(action)
-                    }
-                    .buttonStyle(.borderedProminent)
+    func listViewFor(items: [Recipe.Thumbnail]) -> some View {
+        List(items) { item in
+            Text(item.name)
+                .onTapGesture {
+                    viewModel.showDetailsFor(item: item)
                 }
-            }
         }
     }
 
@@ -97,17 +93,10 @@ private extension HomeView {
                     .font(.title2)
                     .foregroundColor(.placeholderApp)
             }
-        }
-    }
 
-    private func handleAction(_ action: AlertContent.AlertAction) {
-        switch action {
-            case .tryAgain:
-                Task {
-                    await viewModel.loadInitialData()
-                }
-            case .ok:
-                break
+            Button("Try Again") {
+                viewModel.loadInitialData()
+            }
         }
     }
 }

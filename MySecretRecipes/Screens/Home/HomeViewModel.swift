@@ -9,8 +9,66 @@ import Foundation
 
 enum HomeViewState {
     case loading
-    case loaded([Recipe])
+    case loaded([Recipe.Thumbnail])
     case error(AlertContent)
+}
+
+class HomeViewModel: ObservableObject {
+    @Published private(set) var state: HomeViewState = .loading
+    @Published private(set) var isProcessing: Bool = false
+    @Published var alertContent: AlertContent? = nil
+    @Published var selectedItem: UnlockedRecipe? = nil
+
+    private let homeService: HomeServiceProtocol
+
+    init(homeService: HomeServiceProtocol = HomeService(secureStorageManager: SecureStorageManager<Recipe.Details>.manager())) {
+        self.homeService = homeService
+    }
+
+    @MainActor
+    func loadInitialData() {
+        state = .loading
+        Task {
+            let result = await homeService.fetchItems()
+            await MainActor.run {
+                switch result {
+                    case .success(let data):
+                        state = .loaded(data)
+                    case .failure(let error):
+                        state = .error(AlertContent.map(serviceError: error))
+                }
+            }
+        }
+    }
+
+    @MainActor
+    func showDetailsFor(item: Recipe.Thumbnail) {
+        isProcessing = true
+        Task {
+            let result = await homeService.unlockDetails(for: item)
+            await MainActor.run {
+                isProcessing = false
+                switch result {
+                    case .success(let unlockedItem):
+                        selectedItem = unlockedItem
+
+                    case .failure(let error):
+                        alertContent = AlertContent.map(serviceError: error)
+                }
+            }
+        }
+    }
+
+    @MainActor
+    func handleAlertAction(_ action: AlertContent.AlertAction) {
+        switch action {
+            case .tryAgain:
+                loadInitialData()
+            case .ok:
+                break
+        }
+        alertContent = nil
+    }
 }
 
 extension HomeViewState: Equatable {
@@ -28,8 +86,22 @@ extension HomeViewState: Equatable {
     }
 }
 
-extension AlertContent {
-    static func map(_ error: NetworkError) -> AlertContent {
+private extension AlertContent {
+    static func map(serviceError error: HomeServiceError) -> AlertContent {
+        switch error {
+            case .secureStorage(_):
+                return AlertContent(
+                    title: "Something Went Wrong",
+                    message: "Unable to process the data :\\",
+                    actions: [.ok]
+                )
+
+            case .network(let err):
+                return map(networkError: err)
+        }
+    }
+
+    static func map(networkError error: NetworkError) -> AlertContent {
         switch error {
             case .connectivity:
                 return AlertContent(
@@ -51,29 +123,6 @@ extension AlertContent {
                     message: "Unable to process the data :\\",
                     actions: [.ok]
                 )
-        }
-    }
-}
-
-class HomeViewModel: ObservableObject {
-    @Published private(set) var state: HomeViewState = .loading
-
-    private let homeService: HomeServiceProtocol
-
-    init(homeService: HomeServiceProtocol = HomeService()) {
-        self.homeService = homeService
-    }
-
-    @MainActor
-    func loadInitialData() async {
-        state = .loading
-
-        let result = await homeService.fetchHomeItems()
-        switch result {
-            case .success(let data):
-                state = .loaded(data)
-            case .failure(let error):
-                state = .error(AlertContent.map(error))
         }
     }
 }

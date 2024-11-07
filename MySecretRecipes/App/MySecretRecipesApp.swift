@@ -13,7 +13,9 @@ struct MySecretRecipesApp: App {
 
     var body: some Scene {
         WindowGroup {
-            HomeView()
+            NavigationView {
+                HomeView()
+            }
         }
     }
 }

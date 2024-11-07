@@ -9,5 +9,6 @@
 extension Constant {
     class UI {
         static var emptySFPath: String = "cooktop"
+        static var reasonForAuthentication: String = "Please authenticate yourself to unlock recipes.".localizedCapitalized
     }
 }

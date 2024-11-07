@@ -8,49 +8,44 @@
 import Foundation
 
 enum HomeServiceError: Error {
-    case secureAccess(Error?)
+    case secureStorage(SecurityError?)
     case network(NetworkError)
 }
 
 protocol HomeServiceProtocol {
-    var hasLockingPolicy: Bool { get }
     func fetchItems() async -> Result<[Recipe.Thumbnail], HomeServiceError>
-    func accessDetails(for recipe: Recipe) async -> Result<UnlockedRecipe, HomeServiceError>
+    func unlockDetails(for thumbnail: Recipe.Thumbnail) async -> Result<UnlockedRecipe, HomeServiceError>
 }
 
 class HomeService: HomeServiceProtocol {
-    private(set) var hasLockingPolicy: Bool = false
     private let networkManager: NetworkManagerProtocol
-    private let secureAccessManager: SecureAccess
+    private let secureStorageManager: SecureStorageManager<Recipe.Details>
     private var securedDetails: [String: Data] = [:]
 
-    init(networkManager: NetworkManagerProtocol = NetworkManager(), secureAccessManager: SecureAccess = SecureAccess()) {
+    init(networkManager: NetworkManagerProtocol = NetworkManager(),
+         secureStorageManager: SecureStorageManager<Recipe.Details>) {
         self.networkManager = networkManager
-        self.secureAccessManager = secureAccessManager
+        self.secureStorageManager = secureStorageManager
     }
 
     func fetchItems() async -> Result<[Recipe.Thumbnail], HomeServiceError> {
-        guard hasLockingPolicy else {
-            return .failure(.secureAccess(SecureAccessError.notAvailable))
-        }
-
         let networkResponse = await networkManager.request(.get,
                                                            path: Constant.Network.ApiEndPoint.recipes.path,
                                                            successType: [UnlockedRecipe].self)
         switch networkResponse {
             case .success(let recipes):
                 let thumbnails = recipes.map(\.thumbnail)
-                let detailItems = recipes.map(\.details)
+                let detailsItems = recipes.map(\.details)
 
-                var securedData: [String: Data] = [:]
-                for details in detailItems {
+                var securedDetailsNew: [String: Data] = [:]
+                for details in detailsItems {
                     do {
-                        securedData[details.id] = try await secureAccessManager.encryptRecipeDetails(details, for: details.id)
+                        securedDetailsNew[details.id] = try secureStorageManager.encrypt(details, with: details.id)
                     } catch {
-                        return .failure(.secureAccess(error))
+                        return .failure(.secureStorage(.encryption))
                     }
                 }
-                securedDetails = securedData
+                securedDetails = securedDetailsNew
                 return .success(thumbnails)
 
             case .failure(let error):
@@ -58,19 +53,14 @@ class HomeService: HomeServiceProtocol {
         }
     }
 
-    func accessDetails(for recipe: Recipe.Thumbnail) async -> Result<UnlockedRecipe, HomeServiceError> {
-
-        guard let securedData = securedDetails[recipe.id] else {
-            return .failure(.secureAccess(.none))
-        }
-
+    func unlockDetails(for thumbnail: Recipe.Thumbnail) async -> Result<UnlockedRecipe, HomeServiceError> {
         do {
-            let details = try await secureAccessManager.decryptRecipeDetails(encryptedData: securedData, for: recipe.id)
+            let details = try await secureStorageManager.decrypt(itemId: thumbnail.id)
+            let unlocked = UnlockedRecipe(thumbnail: thumbnail, details: details)
+            return .success(unlocked)
         } catch {
-            return .failure(.secureAccess(error))
+            return .failure(.secureStorage(.decryption))
         }
-        let unlocked = UnlockedRecipe(thumbnail: recipe, details: details)
-        return .success(unlocked)
     }
 }
 
